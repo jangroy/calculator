@@ -28,7 +28,7 @@ class AutoShrinkingText extends React.Component {
   }
 
   render() {
-    const { scale } = this.state
+    // const { scale } = this.state
 
     return <div 
     {...this.props} 
@@ -89,7 +89,7 @@ class Calculator extends React.Component {
     const { displayValue, percentBtn } = this.state
     const value = parseFloat(displayValue)
 
-    if (percentBtn == false) {
+    if (percentBtn === false) {
       this.setState({
         percentBtn: true,
         displayValue: String(value / 100)
@@ -135,15 +135,12 @@ class Calculator extends React.Component {
   }
 
   reset() {
-    const { value } = this.state
-    
     this.setState({
       displayValue: '0',
       value: null,
       waitingForOperand: false,
       operator: null,
       percentBtn: false,
-      
     })
   }
 
