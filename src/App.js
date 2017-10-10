@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { Button, Grid, Row, Col } from 'react-bootstrap';
 // import logo from './logo.svg';
 import './App.css';
 
@@ -7,85 +6,181 @@ import './App.css';
 //    - pressing button updates screen to button
 // 2. when does it change?
 
+class AutoShrinkingText extends React.Component {
+  state = {
+    scale: 1
+  }
+  componentDidUpdate() {
+    const node = this.node
+    const {offsetWidth} = node
+    const parentWidth = node.offsetParent.offsetWidth
+    const scale = offsetWidth / parentWidth
+
+    if (scale > 1) {
+      this.setState({
+        scale: 1 / scale
+      })
+    } else if (this.state.scale !== 1){
+      this.setState({
+        scale: 1
+      })
+    }
+  }
+
+  render() {
+    const { scale } = this.state
+
+    return <div 
+    {...this.props} 
+    style={{ transform: 'scale(${scale}, ${scale})'}}
+    ref={node => this.node = node}/> 
+  }
+}
+
 class Calculator extends React.Component {
   state = {
     displayValue: '0',
-    value1: 0,
-    value2: 0
+    value: null,
+    waitingForOperand: false,
+    operator: null,
+    percentBtn: false
   }
 
   // state changer
   inputDigit(digit) {
-    const { displayValue } = this.state
+    const { displayValue, waitingForOperand } = this.state
 
-    this.setState({
-      displayValue: displayValue === '0' ? String(digit) : displayValue + digit
-    })
+    if (waitingForOperand) {
+      this.setState({
+        displayValue: String(digit),
+        waitingForOperand: false
+      })
+    } else {
+      this.setState({
+        displayValue: displayValue === '0' ? String(digit) : displayValue + digit
+      })
+    }
   }
-  
-  add(digit) {
-    const { displayValue } = this.state
-    const { value1 } = this.state
-    const { value2 } = this.state
-    this.setState({
-      value1: value1 === 0 ? parseInt(digit) : value1 + parseInt(displayValue),
-      displayValue: '0'
-    })
+
+  inputDot() {
+    const { displayValue, waitingForOperand } = this.state
+    if (waitingForOperand) {
+      this.setState({
+        displayValue: '.',
+        waitingForOperand: false
+      })
+    } else if (displayValue.indexOf('.') === -1) {
+      this.setState({
+        displayValue: displayValue + '.',
+        waitingForOperand: false
+      })
+    }
   }
-  
-  equal(digit) {
+
+  toggleSign() {
     const { displayValue } = this.state
-    const { value1 } = this.state
-    const { value2 } = this.state
     
     this.setState({
-      value2: value1 + parseInt(displayValue),
-      displayValue: value2,
+      displayValue: displayValue.charAt(0) === '-' ? displayValue.substr(1) : '-' + displayValue
     })
+  }
 
+  inputPercent() {
+    const { displayValue, percentBtn } = this.state
+    const value = parseFloat(displayValue)
+
+    if (percentBtn == false) {
+      this.setState({
+        percentBtn: true,
+        displayValue: String(value / 100)
+      })
+    } else {
+      this.setState({
+        percentBtn: false,
+        displayValue: String(value * 100)
+      })
+     }
+  }
+  
+  performOperation(nextOperator) {
+    const { displayValue, operator, value } = this.state
+    const nextValue = parseFloat(displayValue)
+    
+    const operations = {
+      '/': (prevValue, nextValue) => prevValue / nextValue,
+      '*': (prevValue, nextValue) => prevValue * nextValue,
+      '+': (prevValue, nextValue) => prevValue + nextValue,
+      '-': (prevValue, nextValue) => prevValue - nextValue,
+      '=': (prevValue, nextValue) => nextValue
+    }
+    if(value == null) {
+      // no previous value, hit an operator key.
+      this.setState({
+        value: nextValue
+      })
+    } else if (operator) {
+      const currentValue = value || 0 
+      const computedValue = operations[operator](currentValue, nextValue)
+
+      this.setState({
+        value: computedValue,
+        displayValue: String(computedValue)
+      })
+    }
+
+    this.setState({
+      waitingForOperand: true,
+      operator: nextOperator   
+    })
   }
 
   reset() {
-    const { displayValue } = this.state
-    const { value1 } = this.state
-    const { value2 } = this.state
+    const { value } = this.state
     
     this.setState({
       displayValue: '0',
-      value1: 0,
-      value2: 0
+      value: null,
+      waitingForOperand: false,
+      operator: null,
+      percentBtn: false,
+      
     })
   }
 
   render(){
     const { displayValue } = this.state
-    const { value1 } = this.state
-    const { value2 } = this.state
 
     return (
-      <div>
-        <div className="divStyle">
-          {displayValue}
+      <div className="calculator">
+        <AutoShrinkingText className="calculator-display">{displayValue}</AutoShrinkingText>
+        <div className="calculator-keypad">
+          <div className="input-keys">
+            <div>
+              <button className="keys func" onClick={() => this.reset()}>AC</button>
+              <button className="keys func" onClick={() => this.toggleSign()}>±</button>
+              <button className="keys func" onClick={() => this.inputPercent()}>%</button>
+              <button className="keys orange" onClick={() => this.performOperation('/')}>÷</button>
+            </div>
+            <div>
+              <button className="keys" onClick={() => this.inputDigit(7)}>7</button>
+              <button className="keys" onClick={() => this.inputDigit(8)}>8</button>
+              <button className="keys" onClick={() => this.inputDigit(9)}>9</button>
+              <button className="keys orange" onClick={() => this.performOperation('*')}>x</button>
+              <button className="keys" onClick={() => this.inputDigit(4)}>4</button>
+              <button className="keys" onClick={() => this.inputDigit(5)}>5</button>
+              <button className="keys" onClick={() => this.inputDigit(6)}>6</button>
+              <button className="keys orange" onClick={() => this.performOperation('-')}>-</button>
+              <button className="keys" onClick={() => this.inputDigit(1)}>1</button>
+              <button className="keys" onClick={() => this.inputDigit(2)}>2</button>
+              <button className="keys" onClick={() => this.inputDigit(3)}>3</button>
+              <button className="keys orange" onClick={() => this.performOperation('+')}>+</button>
+              <button className="keys zero-key" onClick={() => this.inputDigit(0)}>0</button>
+              <button className="keys" onClick={() => this.inputDot()}>.</button>
+              <button className="keys orange" onClick={() => this.performOperation('=')}>=</button>
+            </div>
+          </div>
+          <pre>{JSON.stringify(this.state, null, 2)}</pre>
         </div>
-
-        <button onClick={() => this.inputDigit(0)}>0</button>
-        <button onClick={() => this.inputDigit(1)}>1</button>
-        <button onClick={() => this.inputDigit(2)}>2</button>
-        <button onClick={() => this.inputDigit(3)}>3</button>
-        <button onClick={() => this.inputDigit(4)}>4</button>
-        <button onClick={() => this.inputDigit(5)}>5</button>
-        <button onClick={() => this.inputDigit(6)}>6</button>
-        <button onClick={() => this.inputDigit(7)}>7</button>
-        <button onClick={() => this.inputDigit(8)}>8</button>
-        <button onClick={() => this.inputDigit(9)}>9</button>
-        <button onClick={() => this.reset()}>reset</button>
-        <button onClick={() => this.add(displayValue)}>+</button>
-        <button onClick={() => this.equal(displayValue)}>=</button>
-        
-        <p>displayValue: {displayValue}</p>
-        <p>value1: {value1}</p>
-        <p>value2: {value2}</p>
-      
       </div>
     );
   }
